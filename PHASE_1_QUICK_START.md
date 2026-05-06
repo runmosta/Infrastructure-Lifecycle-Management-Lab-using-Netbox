@@ -2,9 +2,9 @@
 
 ## One-Command Startup
 
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
-docker-compose -f Code/docker/docker-compose.yml up -d
+```bash
+cd <PROJECT_ROOT>
+docker compose -f Docker/docker-compose.yml up -d
 ```
 
 ## Access Netbox
@@ -18,14 +18,14 @@ Password: (from .env file)
 
 | Command | Purpose |
 |---------|---------|
-| `docker-compose -f Code/docker/docker-compose.yml up -d` | Start all services (background) |
-| `docker-compose -f Code/docker/docker-compose.yml ps` | Show container status |
-| `docker-compose -f Code/docker/docker-compose.yml logs -f netbox` | View Netbox logs |
-| `docker-compose -f Code/docker/docker-compose.yml down` | Stop all services |
-| `docker-compose -f Code/docker/docker-compose.yml restart netbox` | Restart Netbox |
+| `docker compose -f Docker/docker-compose.yml up -d` | Start all services (background) |
+| `docker compose -f Docker/docker-compose.yml ps` | Show container status |
+| `docker compose -f Docker/docker-compose.yml logs -f netbox` | View Netbox logs |
+| `docker compose -f Docker/docker-compose.yml down` | Stop all services |
+| `docker compose -f Docker/docker-compose.yml restart netbox` | Restart Netbox |
 
 ## Files Modified
-- ✅ `Code/docker/docker-compose.yml` — Docker orchestration
+- ✅ `Docker/docker-compose.yml` — Docker orchestration
 - ✅ `.env` — Environment configuration
 
 ## Data Locations
@@ -47,5 +47,5 @@ See "Common Issues & Solutions" in PHASE_1_STARTUP.md
 
 **Ready to start? Run:**
 ```
-docker-compose -f Code/docker/docker-compose.yml up -d
+docker compose -f Docker/docker-compose.yml up -d
 ```

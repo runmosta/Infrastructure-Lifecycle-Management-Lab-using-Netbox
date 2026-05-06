@@ -1,6 +1,32 @@
 # Netbox Infrastructure Lab — Complete Documentation Index
 
-## 🎯 Quick Start (Read These First)
+## � OS-Agnostic Usage
+
+This documentation is designed to work on **both Windows and macOS/Linux**. All commands and paths are written to be cross-platform compatible.
+
+### Key Points
+- **`<PROJECT_ROOT>`** — Replace with your actual repository path (e.g., `/Users/yourname/projects/netbox-lab` on macOS or `C:\Users\yourname\projects\netbox-lab` on Windows)
+- **Shell commands** — Use your preferred terminal (Command Prompt, PowerShell, Terminal, iTerm, etc.)
+- **Path separators** — Documentation uses forward slashes (`/`) for compatibility; Windows accepts both `/` and `\`
+- **Platform-specific notes** — When commands differ by OS, both versions are shown with clear labels
+
+### Example Usage
+```bash
+# Replace <PROJECT_ROOT> with your actual path
+cd <PROJECT_ROOT>
+
+# This works on both Windows and macOS/Linux
+mkdir -p Code/{netbox,python/scripts}
+```
+
+### Getting Started
+1. Clone or download this repository
+2. Replace `<PROJECT_ROOT>` with your local path throughout the docs
+3. Follow the setup guides using your preferred OS and tools
+
+---
+
+## �🎯 Quick Start (Read These First)
 
 ### 1. **DESIGN_SUMMARY.md** ← Start Here
 2-minute overview of what was designed and why. Architecture at a glance.
@@ -84,8 +110,8 @@ config/  → Configuration files
 ### Status: ✅ Ready to Initialize
 All setup documentation is in place. Next step:
 
-1. Open Command Prompt
-2. Navigate to: `c:\Users\runem\Nextcloud\Code\Netbox`
+1. Open a terminal
+2. Navigate to: `<PROJECT_ROOT>`
 3. Follow **GIT_SETUP.md** to initialize Git
 4. Set up remote backup (GitHub) per **GIT_BACKUP_SUMMARY.md**
 
@@ -148,7 +174,7 @@ All setup documentation is in place. Next step:
 
 ✅ Docker Desktop (not Linux VM) — Simplicity  
 ✅ Windows filesystem persistence — Easy access  
-✅ docker-compose orchestration — Standard  
+✅ docker compose orchestration — Standard  
 ✅ Git for version control — Backup + history  
 ✅ Python + Ansible separation — Clean architecture  
 ✅ Dual-mode operation — Dev + Prod flexibility  

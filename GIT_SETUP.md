@@ -2,94 +2,62 @@
 
 ## Prerequisites
 - Git is installed (`git` command available)
-- You're in `c:\Users\runem\Nextcloud\Code\Netbox` directory
+- You're in `<PROJECT_ROOT>` directory
 
 ## Step 1: Initialize Git Repository
 
-Open Command Prompt or PowerShell in the Netbox directory:
+Open a terminal in the repository root:
 
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
+```bash
+cd <PROJECT_ROOT>
 git init
 ```
 
-**Output should be**: `Initialized empty Git repository in c:\Users\runem\Nextcloud\Code\Netbox\.git\`
+**Output should be**: `Initialized empty Git repository in <PROJECT_ROOT>\.git\`
 
 ## Step 2: Configure Git User
 
 Set up your identity for commits:
 
-```cmd
+```bash
 git config user.name "Your Name"
 git config user.email "your.email@example.com"
 ```
 
 To verify:
-```cmd
+```bash
 git config --list
 ```
 
 ## Step 3: Create Folder Structure
 
-You'll need to create the folder structure manually. Here's a PowerShell script:
+Use shell commands to create the folder structure. Example:
 
-```powershell
-$base = "c:\Users\runem\Nextcloud\Code\Netbox"
-
-$dirs = @(
-  "Code\netbox", "Code\python", "Code\python\scripts",
-  "Code\ansible", "Code\ansible\playbooks", "Code\ansible\roles",
-  "Code\ansible\inventory", "Code\docker",
-  "logs\netbox", "logs\python", "logs\ansible",
-  "Data\postgres", "Data\netbox", "Data\volumes",
-  "config"
-)
-
-foreach ($dir in $dirs) {
-  $path = "$base\$dir"
-  if (-not (Test-Path $path)) {
-    New-Item -ItemType Directory -Path $path -Force | Out-Null
-    # Add .gitkeep to preserve empty directories
-    Add-Content -Path "$path\.gitkeep" -Value ""
-  }
-}
-
-Write-Host "✓ Folder structure created"
+```bash
+mkdir -p Code/{netbox,python/scripts,ansible/{playbooks,roles,inventory},docker}
+mkdir -p logs/{netbox,python,ansible}
+mkdir -p Data/{postgres,netbox,volumes}
+mkdir -p config
 ```
 
-**Or manually using CMD/File Explorer:**
-```
-mkdir Code\netbox
-mkdir Code\python\scripts
-mkdir Code\ansible\playbooks
-mkdir Code\ansible\roles
-mkdir Code\ansible\inventory
-mkdir Code\docker
-mkdir logs\netbox
-mkdir logs\python
-mkdir logs\ansible
-mkdir Data\postgres
-mkdir Data\netbox
-mkdir Data\volumes
-mkdir config
-```
+Windows users can also create the same folders in PowerShell or File Explorer.
 
 ## Step 4: Add Files to Git
 
 Stage all documentation and configuration files:
 
-```cmd
+```bash
 git add .
 ```
 
 To see what will be committed:
-```cmd
+```bash
 git status
 ```
 
 ## Step 5: Create Initial Commit
 
-```cmd
+```bash
 git commit -m "Initial commit: Netbox Infrastructure Lab design
 
 - Complete architecture design for multi-vendor device management
@@ -105,7 +73,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 
 Check your repository was created successfully:
 
-```cmd
+```bash
 git log --oneline
 ```
 
@@ -126,7 +94,7 @@ To backup to GitHub:
 
 After creating the repository, follow GitHub's instructions:
 
-```cmd
+```bash
 git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/netbox-infrastructure-lab.git
 git push -u origin main
@@ -136,7 +104,7 @@ Replace `YOUR_USERNAME` with your actual GitHub username.
 
 ## Verify Everything Works
 
-```cmd
+```bash
 # Check repository status
 git status
 
@@ -150,7 +118,7 @@ git remote -v
 ## Next: Using Git During Development
 
 For each change:
-```cmd
+```bash
 # See what changed
 git status
 
@@ -169,12 +137,16 @@ git push
 ## Backup Routine
 
 ### Weekly Local Backup
-```cmd
-xcopy "c:\Users\runem\Nextcloud\Code\Netbox" "E:\Backup\Netbox" /E /I /Y
+```bash
+# Windows
+xcopy "<PROJECT_ROOT>" "E:\Backup\Netbox" /E /I /Y
+
+# macOS/Linux
+cp -R "<PROJECT_ROOT>" /path/to/backup/Netbox
 ```
 
 ### Push to Remote
-```cmd
+```bash
 git push origin main
 ```
 

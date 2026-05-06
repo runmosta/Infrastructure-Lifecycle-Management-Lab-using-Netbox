@@ -21,8 +21,8 @@
 
 ### Option A: Using Command Prompt
 
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
+```bash
+cd <PROJECT_ROOT>
 
 # Initialize Git
 git init
@@ -32,9 +32,10 @@ git config user.name "Your Name"
 git config user.email "your.email@example.com"
 
 # Create folder structure (see GIT_SETUP.md for detailed commands)
-mkdir Code\netbox Code\python\scripts Code\ansible\playbooks Code\ansible\roles Code\ansible\inventory Code\docker
-mkdir logs\netbox logs\python logs\ansible
-mkdir Data\postgres Data\netbox Data\volumes
+mkdir Code/netbox Code/python/scripts Code/ansible/playbooks Code/ansible/roles Code/ansible/inventory
+mkdir Docker Docker/Data Docker/logs
+mkdir logs/netbox logs/python logs/ansible
+mkdir Data/postgres Data/netbox Data/volumes
 mkdir config
 
 # Add all files
@@ -59,9 +60,13 @@ Read **GIT_SETUP.md** for complete step-by-step instructions.
 ### Local Backup (Always Do This)
 Git keeps full history locally in `.git/` folder.
 
-**Weekly backup command:**
-```cmd
-xcopy "c:\Users\runem\Nextcloud\Code\Netbox" "E:\Backup\Netbox" /E /I /Y
+**Weekly backup commands:**
+```bash
+# Windows
+xcopy "<PROJECT_ROOT>" "E:\Backup\Netbox" /E /I /Y
+
+# macOS/Linux
+cp -R "<PROJECT_ROOT>" /path/to/backup/Netbox
 ```
 
 ### Remote Backup (Recommended)
@@ -71,7 +76,7 @@ Set up on GitHub, GitLab, or Gitea for cloud backup.
 1. Create repo: https://github.com/new
 2. Name: `netbox-infrastructure-lab`
 3. Run these commands:
-```cmd
+```bash
 git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/netbox-infrastructure-lab.git
 git push -u origin main
@@ -143,7 +148,7 @@ git push -u origin main
 
 **Commit Often**: Small, focused commits are easier to track and fix.
 
-```cmd
+```bash
 # Good: Specific change
 git commit -m "feat: Add health check script for device polling"
 
@@ -153,7 +158,7 @@ git commit -m "added stuff"
 
 **Write Good Messages**: Include context about what and why.
 
-```cmd
+```bash
 git commit -m "Add device discovery via SNMP
 
 - Discover Cisco devices on network
@@ -164,7 +169,7 @@ git commit -m "Add device discovery via SNMP
 
 **Use Branches for Features**: Keep main branch stable.
 
-```cmd
+```bash
 git checkout -b feature/eve-ng-support
 # Make changes
 git add .

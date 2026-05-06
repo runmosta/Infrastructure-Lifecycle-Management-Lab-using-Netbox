@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: netbox_password_change_me
     volumes:
       # Persist database to Windows filesystem
-      - ./Data/postgres:/var/lib/postgresql/data
+      - ../Data/postgres:/var/lib/postgresql/data
     networks:
       - netbox-network
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
     image: redis:7-alpine
     container_name: netbox-redis
     volumes:
-      - ./Data/volumes/redis:/data
+      - ../Data/volumes/redis:/data
     networks:
       - netbox-network
     restart: unless-stopped
@@ -73,9 +73,9 @@ services:
       METRICS_ENABLED: "true"
     volumes:
       # Persist media and configs
-      - ./Data/netbox:/opt/netbox/netbox/media
-      - ./logs/netbox:/var/log/netbox
-      - ./Code/netbox/plugins:/opt/netbox/plugins
+      - ../Data/netbox:/opt/netbox/netbox/media
+      - ../logs/netbox:/var/log/netbox
+      - ../../Code/netbox/plugins:/opt/netbox/plugins
     networks:
       - netbox-network
     ports:
@@ -106,8 +106,8 @@ services:
       REDIS_DB_TASK: 1
       SECRET_KEY: ${NETBOX_SECRET_KEY}
     volumes:
-      - ./logs/netbox:/var/log/netbox
-      - ./Code/netbox/plugins:/opt/netbox/plugins
+      - ../logs/netbox:/var/log/netbox
+      - ../../Code/netbox/plugins:/opt/netbox/plugins
     networks:
       - netbox-network
     command: python manage.py rqworker

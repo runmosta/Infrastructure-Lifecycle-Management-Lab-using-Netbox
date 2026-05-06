@@ -50,7 +50,7 @@ Netbox custom fields for device tracking:
 |----------|--------|-----------|
 | Netbox Deployment | Docker (not VM) | Simplicity; Docker Desktop handles Linux kernel |
 | Data Persistence | Windows filesystem | Easy backup, access; not inside container |
-| Orchestration | docker-compose | Simple, standard, reproducible |
+| Orchestration | docker compose | Simple, standard, reproducible |
 | Container Network | Shared (offline) | Containers can easily communicate for testing |
 | Automation | Python + Ansible | Python for scripting; Ansible for config management |
 | Device Simulation | EVE-NG | Industry standard; realistic network simulation |
@@ -108,7 +108,7 @@ Phase 4: **Testing** (offline then online)
 
 ## Next Steps
 
-1. **Create folder structure** (PowerShell script provided in SETUP_GUIDE.md)
+1. **Create folder structure** (shell commands provided in SETUP_GUIDE.md)
 2. **Build docker-compose.yml** (Netbox + PostgreSQL)
 3. **Configure Netbox custom fields** (lifecycle tracking)
 4. **Create Python scripts** (health checks, discovery)

@@ -13,9 +13,9 @@
 - [ ] Confirm whale icon appears in system tray
 
 ### ✅ Step 3: Verify Docker is Working
-Open Command Prompt and run:
+Open a terminal and run:
 
-```cmd
+```bash
 docker --version
 ```
 
@@ -24,21 +24,21 @@ Should show: `Docker version 25.x.x, build xxxxxxx`
 If you see this, Docker is working! ✅
 
 ### ✅ Step 4: Test Docker Can Pull Images
-```cmd
+```bash
 docker run hello-world
 ```
 
 Should show: `Hello from Docker!`
 
 ### ✅ Step 5: Try Netbox Again
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
-docker-compose -f Code/docker/docker-compose.yml up -d
+```bash
+cd <PROJECT_ROOT>
+docker compose -f Docker/docker-compose.yml up -d
 ```
 
 Wait 1-2 minutes, then check:
-```cmd
-docker-compose -f Code/docker/docker-compose.yml ps
+```bash
+docker compose -f Docker/docker-compose.yml ps
 ```
 
 All containers should show "Up" ✅
@@ -61,13 +61,13 @@ All containers should show "Up" ✅
 
 **"No such file or directory"**
 - You're not in the right directory
-- Make sure you're in: `c:\Users\runem\Nextcloud\Code\Netbox`
-- Run: `cd c:\Users\runem\Nextcloud\Code\Netbox` first
+- Make sure you're in: `<PROJECT_ROOT>`
+- Run: `cd <PROJECT_ROOT>` first
 
 **"Port 8000 already in use"**
 - Another container is using that port
 - Run: `docker ps` to see running containers
-- Or: `docker-compose -f Code/docker/docker-compose.yml down` to stop
+- Or: `docker compose -f Docker/docker-compose.yml down` to stop
 
 ---
 

@@ -12,7 +12,7 @@ You now have a complete design for your infrastructure lab. Three documentation 
 
 ## 📁 Folder Structure to Create
 
-Create this structure in `c:\Users\runem\Nextcloud\Code\Netbox`:
+Create this structure in `<PROJECT_ROOT>`:
 
 ```
 Netbox/
@@ -41,19 +41,14 @@ Netbox/
 └── docker-compose.yml        # Main orchestration file
 ```
 
-**PowerShell script to create structure:**
-```powershell
-$base = "c:\Users\runem\Nextcloud\Code\Netbox"
-@(
-  "Code\netbox", "Code\python\scripts", "Code\ansible\playbooks", 
-  "Code\ansible\roles", "Code\ansible\inventory", "Code\docker",
-  "logs\netbox", "logs\python", "logs\ansible",
-  "Data\postgres", "Data\netbox", "Data\volumes", "config"
-) | ForEach-Object {
-  New-Item -ItemType Directory -Path "$base\$_" -Force | Out-Null
-}
-Write-Host "✓ Folder structure created"
+**Example shell commands to create structure:**
+```bash
+mkdir -p Code/{netbox,python/scripts,ansible/{playbooks,roles,inventory},docker}
+mkdir -p logs/{netbox,python,ansible}
+mkdir -p Data/{postgres,netbox,volumes}
+mkdir -p config
 ```
+Windows users can also create the same folders in PowerShell or File Explorer.
 
 ## 🐳 Next Implementation Steps
 
@@ -61,7 +56,7 @@ Write-Host "✓ Folder structure created"
 **Goal**: Get Netbox running in Docker with PostgreSQL
 
 Files to create:
-- `Code/docker/docker-compose.yml` — Main orchestration
+- `Docker/docker-compose.yml` — Main orchestration
 - `Code/netbox/.env` — Netbox environment variables
 - `config/netbox.config.yml` — Netbox settings
 
@@ -69,7 +64,7 @@ Tasks:
 1. Create docker-compose.yml with Netbox + PostgreSQL services
 2. Configure volume mounts to `Data/postgres/`, `Data/netbox/`, `logs/netbox/`
 3. Set custom device fields: EOS, Service Start Date, Service End Date, Service Tags
-4. Test: `docker-compose up` and verify Netbox starts
+4. Test: `docker compose -f Docker/docker-compose.yml up` and verify Netbox starts
 
 ### Phase 2: Python Container Setup
 **Goal**: Create Python automation container for device polling
@@ -198,23 +193,24 @@ collections:
 
 ```bash
 # Create folder structure
-mkdir -p Code/{netbox,python/scripts,ansible/{playbooks,roles,inventory},docker}
+mkdir -p Code/{netbox,python/scripts,ansible/{playbooks,roles,inventory}}
+mkdir -p Docker/{Data,logs}
 mkdir -p logs/{netbox,python,ansible}
 mkdir -p Data/{postgres,netbox,volumes}
 mkdir -p config
 
 # Start all services
-cd c:\Users\runem\Nextcloud\Code\Netbox
-docker-compose up -d
+cd <PROJECT_ROOT>
+docker compose -f Docker/docker-compose.yml up -d
 
 # Access Netbox
 # http://localhost:8000
 
 # View logs
-docker-compose logs -f netbox
+docker compose -f Docker/docker-compose.yml logs -f netbox
 
 # Stop all services
-docker-compose down
+docker compose -f Docker/docker-compose.yml down
 ```
 
 ## ✨ What's Next?

@@ -40,7 +40,7 @@ services:
 
   # Netbox - Network Source of Truth
   netbox:
-    image: netboxcommunity/netbox:latest
+    image: netboxcommunity/netbox:v4.0
     container_name: netbox-app
     depends_on:
       postgres:
@@ -63,6 +63,7 @@ services:
       
       # Netbox Settings
       SECRET_KEY: ${NETBOX_SECRET_KEY}
+      API_TOKEN_PEPPERS: ${API_TOKEN_PEPPERS}
       ALLOWED_HOSTS: "localhost,127.0.0.1,netbox"
       SUPERUSER_USERNAME: admin
       SUPERUSER_PASSWORD: ${NETBOX_ADMIN_PASSWORD}
@@ -75,7 +76,7 @@ services:
       # Persist media and configs
       - ./Data/netbox:/opt/netbox/netbox/media
       - ./logs/netbox:/var/log/netbox
-      - ./Code/netbox/plugins:/opt/netbox/plugins
+      - ../Code/netbox/plugins:/opt/netbox/plugins
     networks:
       - netbox-network
     ports:
@@ -89,7 +90,7 @@ services:
 
   # Netbox Worker - Background tasks
   netbox-worker:
-    image: netboxcommunity/netbox:latest
+    image: netboxcommunity/netbox:v4.0
     container_name: netbox-worker
     depends_on:
       - postgres
@@ -105,9 +106,10 @@ services:
       REDIS_DB_CACHE: 0
       REDIS_DB_TASK: 1
       SECRET_KEY: ${NETBOX_SECRET_KEY}
+      API_TOKEN_PEPPERS: ${API_TOKEN_PEPPERS}
     volumes:
       - ./logs/netbox:/var/log/netbox
-      - ./Code/netbox/plugins:/opt/netbox/plugins
+      - ../Code/netbox/plugins:/opt/netbox/plugins
     networks:
       - netbox-network
     command: python manage.py rqworker

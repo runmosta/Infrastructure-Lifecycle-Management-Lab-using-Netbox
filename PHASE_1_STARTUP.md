@@ -8,7 +8,7 @@ This phase sets up Netbox as your network source of truth with:
 - **Netbox Worker**: Background task processing
 
 ## Files Created
-- `Code/docker/docker-compose.yml` — Complete stack orchestration
+- `Docker/docker-compose.yml` — Complete stack orchestration
 - `.env` — Environment variables (passwords, API tokens)
 
 ## Prerequisites
@@ -21,7 +21,7 @@ This phase sets up Netbox as your network source of truth with:
 Edit the `.env` file in the root directory:
 
 ```
-c:\Users\runem\Nextcloud\Code\Netbox\.env
+<PROJECT_ROOT>\.env
 ```
 
 **IMPORTANT**: Change these values:
@@ -32,7 +32,7 @@ Keep defaults for now, change before production.
 ### Option B: Secure Setup (recommended)
 Generate secure values:
 
-```cmd
+```bash
 # Option 1: Generate SECRET_KEY using Python
 python -c "from secrets import token_urlsafe; print(token_urlsafe(32))"
 
@@ -55,14 +55,14 @@ NETBOX_API_TOKEN=your_api_token
 
 Navigate to project root and start containers:
 
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
+```bash
+cd <PROJECT_ROOT>
 
 # Start all services in background
-docker-compose -f Code/docker/docker-compose.yml up -d
+docker compose -f Docker/docker-compose.yml up -d
 
 # Or start with logs visible (Ctrl+C to stop)
-docker-compose -f Code/docker/docker-compose.yml up
+docker compose -f Docker/docker-compose.yml up
 ```
 
 **Expected output:**
@@ -75,9 +75,9 @@ Creating netbox-worker      ... done
 
 ## Step 3: Verify Services Are Running
 
-```cmd
+```bash
 # Check container status
-docker-compose -f Code/docker/docker-compose.yml ps
+docker compose -f Docker/docker-compose.yml ps
 
 # All containers should show "Up" status
 # Example output:
@@ -106,9 +106,9 @@ Password: (from NETBOX_ADMIN_PASSWORD in .env)
 
 Check that data is persisting to Windows:
 
-```cmd
+```bash
 # List files in Data/postgres/
-dir Data\postgres\
+dir Data/postgres\
 
 # Should show PostgreSQL database files:
 #   global/
@@ -121,15 +121,15 @@ dir Data\postgres\
 
 View application logs:
 
-```cmd
+```bash
 # View Netbox logs
-docker-compose -f Code/docker/docker-compose.yml logs -f netbox
+docker compose -f Docker/docker-compose.yml logs -f netbox
 
 # View PostgreSQL logs
-docker-compose -f Code/docker/docker-compose.yml logs -f postgres
+docker compose -f Docker/docker-compose.yml logs -f postgres
 
 # View Redis logs
-docker-compose -f Code/docker/docker-compose.yml logs -f redis
+docker compose -f Docker/docker-compose.yml logs -f redis
 
 # Ctrl+C to stop following logs
 ```
@@ -141,21 +141,21 @@ docker-compose -f Code/docker/docker-compose.yml logs -f redis
 
 ### Issue: "Port 8000 already in use"
 **Solution**: Stop any existing Netbox containers:
-```cmd
-docker-compose -f Code/docker/docker-compose.yml down
+```bash
+docker compose -f Docker/docker-compose.yml down
 docker ps  # Check for any running containers
 ```
 
 ### Issue: "PostgreSQL connection failed"
 **Solution**: Check PostgreSQL logs:
-```cmd
-docker-compose -f Code/docker/docker-compose.yml logs postgres
+```bash
+docker compose -f Docker/docker-compose.yml logs postgres
 ```
 
 ### Issue: Database not persisting
 **Solution**: Verify volume mount:
-```cmd
-docker-compose -f Code/docker/docker-compose.yml inspect netbox-postgres | findstr Mounts
+```bash
+docker compose -f Docker/docker-compose.yml inspect netbox-postgres | grep Mounts  # Windows: use findstr Mounts
 ```
 
 ## Next Steps After Verification
@@ -185,19 +185,19 @@ In Netbox UI:
 
 ## Stopping Services
 
-```cmd
+```bash
 # Stop all containers (data persists)
-docker-compose -f Code/docker/docker-compose.yml down
+docker compose -f Docker/docker-compose.yml down
 
 # Stop and remove volumes (WARNING: deletes data)
-docker-compose -f Code/docker/docker-compose.yml down -v
+docker compose -f Docker/docker-compose.yml down -v
 ```
 
 ## Backup & Version Control
 
-```cmd
-# Commit docker-compose setup to Git
-git add Code/docker/docker-compose.yml .env
+```bash
+# Commit docker compose setup to Git
+git add Docker/docker-compose.yml .gitignore
 git commit -m "feat: Add Netbox + PostgreSQL Docker setup
 
 - PostgreSQL backend with volume persistence

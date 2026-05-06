@@ -3,6 +3,13 @@
 # Docker
 .dockerignore
 docker-compose.override.yml
+Docker/.env
+Docker/Data/
+Docker/logs/
+
+# Legacy runtime locations (kept ignored if recreated)
+Code/Data/
+Code/logs/
 
 # Logs
 logs/**/*.log

@@ -28,23 +28,24 @@ SKILL.md                      → Technical architecture details
 ### Action 2: Initialize Git Repository (2 minutes)
 Follow the commands in **GIT_SETUP.md**:
 
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
+```bash
+cd <PROJECT_ROOT>
 git init
 git config user.name "Your Name"
 git config user.email "your.email@example.com"
 ```
 
 Create folder structure (from GIT_SETUP.md):
-```cmd
-mkdir Code\netbox Code\python\scripts Code\ansible\playbooks Code\ansible\roles Code\ansible\inventory Code\docker
-mkdir logs\netbox logs\python logs\ansible
-mkdir Data\postgres Data\netbox Data\volumes
+```bash
+mkdir Code/netbox Code/python/scripts Code/ansible/playbooks Code/ansible/roles Code/ansible/inventory
+mkdir Docker Docker/Data Docker/logs
+mkdir logs/netbox logs/python logs/ansible
+mkdir Data/postgres Data/netbox Data/volumes
 mkdir config
 ```
 
 Commit everything:
-```cmd
+```bash
 git add .
 git commit -m "Initial commit: Netbox Infrastructure Lab design
 
@@ -54,7 +55,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ### Action 3 (Optional): Set Up Remote Backup
 For cloud backup on GitHub (optional but recommended):
 
-```cmd
+```bash
 git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/netbox-infrastructure-lab.git
 git push -u origin main
@@ -119,22 +120,26 @@ See **GIT_BACKUP_SUMMARY.md** for GitHub account setup.
 ### Local Backup (Essential)
 Git keeps all history locally in `.git/` folder.
 
-**Weekly backup:**
-```cmd
-xcopy "c:\Users\runem\Nextcloud\Code\Netbox" "E:\Backup\Netbox" /E /I /Y
+**Weekly backup commands:**
+```bash
+# Windows
+xcopy "<PROJECT_ROOT>" "E:\Backup\Netbox" /E /I /Y
+
+# macOS/Linux
+cp -R "<PROJECT_ROOT>" /path/to/backup/Netbox
 ```
 
 ### Remote Backup (Recommended)
 GitHub, GitLab, or other Git hosting service.
 
 **One-time setup:**
-```cmd
+```bash
 git remote add origin https://github.com/YOUR_USERNAME/netbox-infrastructure-lab.git
 git push -u origin main
 ```
 
 **Regular sync:**
-```cmd
+```bash
 git push
 ```
 

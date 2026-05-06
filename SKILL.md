@@ -19,7 +19,7 @@ description: Design and implement a network infrastructure lifecycle management 
 Code/netbox/         → Netbox Docker setup + configurations
 Code/python/         → Python automation scripts
 Code/ansible/        → Ansible playbooks and roles
-Code/docker/         → Docker Compose orchestration files
+Docker/docker/         → Docker Compose orchestration files
 logs/                → Application logs by component
 Data/                → Persistent data (database, volumes)
 config/              → Global configuration files
@@ -81,7 +81,7 @@ config/              → Global configuration files
 
 1. **Docker Desktop** (not Linux VM): Simplifies setup; Docker Desktop manages Linux kernel
 2. **Windows Filesystem Persistence**: Code, logs, data on Windows for easy access and backup
-3. **docker-compose** Orchestration: Single command to start/stop all services
+3. **docker compose** Orchestration: Single command to start/stop all services
 4. **Shared Container Network** (Offline): All containers communicate via internal Docker network
 5. **Custom Netbox Fields**: EOS, Service dates, Service tags for lifecycle tracking
 6. **Python + Ansible Separation**: Python for automated polling; Ansible for config management

@@ -34,7 +34,7 @@
 - You'll see the whale icon in system tray when ready
 
 ### Option B: Command Line
-```cmd
+```bash
 # Start Docker Desktop
 "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 ```
@@ -51,7 +51,7 @@ If Docker won't start:
 
 Once Docker Desktop is running, verify it's responsive:
 
-```cmd
+```bash
 # Check Docker version
 docker --version
 
@@ -74,7 +74,7 @@ This message shows that your installation appears to be working correctly.
 
 ## Step 4: Check Docker Daemon Status
 
-```cmd
+```bash
 # Get Docker info
 docker info
 
@@ -91,14 +91,14 @@ docker info
 
 Once Docker is confirmed working:
 
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
+```bash
+cd <PROJECT_ROOT>
 
 # Try again
-docker-compose -f Code/docker/docker-compose.yml up -d
+docker compose -f Docker/docker-compose.yml up -d
 
 # Check status
-docker-compose -f Code/docker/docker-compose.yml ps
+docker compose -f Docker/docker-compose.yml ps
 ```
 
 ---
@@ -113,7 +113,7 @@ docker-compose -f Code/docker/docker-compose.yml ps
 
 ### Issue: "Cannot connect to Docker daemon"
 **Solutions**:
-```cmd
+```bash
 # Try restarting Docker
 # Option 1: Quit Docker Desktop and restart
 # Option 2: Or restart Windows
@@ -125,7 +125,7 @@ docker system prune -a
 
 ### Issue: "No space left on device"
 **Solutions**:
-```cmd
+```bash
 # Check Docker disk usage
 docker system df
 
@@ -149,7 +149,7 @@ docker container prune
 
 Docker Desktop requires WSL2. Verify it's installed:
 
-```cmd
+```bash
 # Check if WSL2 is installed
 wsl --list --verbose
 
@@ -158,7 +158,7 @@ wsl --list --verbose
 ```
 
 If WSL2 is not installed:
-1. Open Command Prompt as Administrator
+1. Open a terminal as Administrator
 2. Run: `wsl --install`
 3. Restart Windows
 4. Open Docker Desktop again
@@ -188,16 +188,16 @@ If Docker still won't work:
 
 Once `docker --version` works:
 
-```cmd
-cd c:\Users\runem\Nextcloud\Code\Netbox
+```bash
+cd <PROJECT_ROOT>
 
 # Start Netbox stack
-docker-compose -f Code/docker/docker-compose.yml up -d
+docker compose -f Docker/docker-compose.yml up -d
 
 # Wait 1-2 minutes for all services to start
 
 # Check status
-docker-compose -f Code/docker/docker-compose.yml ps
+docker compose -f Docker/docker-compose.yml ps
 
 # Access Netbox
 # Open browser: http://localhost:8000
@@ -211,7 +211,7 @@ If you're still stuck:
 
 1. **Verify the error exactly**: Share the full error message
 2. **Check Docker logs**:
-   ```cmd
+   ```bash
    docker system df
    docker info
    ```
@@ -221,6 +221,6 @@ If you're still stuck:
 ---
 
 **Next**: Start or restart Docker Desktop, then run:
-```cmd
-docker-compose -f Code/docker/docker-compose.yml up -d
+```bash
+docker compose -f Docker/docker-compose.yml up -d
 ```

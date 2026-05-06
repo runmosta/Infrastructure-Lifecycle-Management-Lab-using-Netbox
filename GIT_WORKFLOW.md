@@ -6,7 +6,7 @@ Your Netbox Infrastructure Lab is now a Git repository for version control and b
 
 ### Repository Location
 ```
-c:\Users\runem\Nextcloud\Code\Netbox
+<PROJECT_ROOT>
 ```
 
 ### What's Tracked
@@ -25,7 +25,7 @@ c:\Users\runem\Nextcloud\Code\Netbox
 
 ### Initial Setup (First Time)
 ```bash
-cd c:\Users\runem\Nextcloud\Code\Netbox
+cd <PROJECT_ROOT>
 
 # Initialize repository (if not already done)
 git init
@@ -106,8 +106,11 @@ git merge feature/eve-ng-integration
 ### Local Backup
 Git stores all history locally in `.git/` directory. To backup:
 ```bash
-# Copy entire repository to external drive
-xcopy "c:\Users\runem\Nextcloud\Code\Netbox" "E:\Backup\Netbox" /E /I
+# Windows
+xcopy "<PROJECT_ROOT>" "E:\Backup\Netbox" /E /I
+
+# macOS/Linux
+cp -R "<PROJECT_ROOT>" /path/to/backup/Netbox
 ```
 
 ### Remote Backup (Recommended)
@@ -155,7 +158,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 
 ### Examples
 ```
-feat: Add Netbox docker-compose setup
+feat: Add Netbox docker compose setup
 
 - PostgreSQL backend with volume persistence
 - Environment variable configuration
