@@ -1,0 +1,76 @@
+{
+  "name": "Netbox Infrastructure Lab - Automation",
+  "image": "python:3.11-slim",
+  
+  "remoteUser": "root",
+  "workspaceFolder": "/workspace",
+  
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/root/.ssh,readonly",
+    "source=${localEnv:HOME}/.config/ansible,target=/root/.ansible,type=bind,consistency=cached"
+  ],
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  
+  "postCreateCommand": "/bin/bash -c '\nset -e\necho \"📦 Installing dependencies...\"\npip install --upgrade pip setuptools wheel > /dev/null 2>&1\npip install --quiet ansible netaddr jinja2 pyyaml requests black pylint pytest\necho \"✅ Ansible $(ansible --version | head -1)\"\necho \"✅ Python $(python --version)\"\necho \"\"\necho \"🚀 Dev environment ready!\"\necho \"   - Ansible playbooks: /workspace/ansible\"\necho \"   - Python scripts: /workspace/python\"\necho \"   - Environment config: /workspace/.env\"\n'",
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-python.pylint",
+        "redhat.ansible",
+        "ms-vscode.makefile-tools",
+        "eamodio.gitlens",
+        "ms-vscode.remote-explorer",
+        "mhutchie.git-graph"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python3",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "black",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "ms-python.python",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          "**/.pytest_cache": true
+        },
+        "python.analysis.typeCheckingMode": "basic",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  
+  "forwardPorts": [8000, 8080],
+  "portsAttributes": {
+    "8000": {
+      "label": "Netbox (via Docker host)",
+      "onAutoForward": "notify",
+      "requireLocalPort": true
+    },
+    "8080": {
+      "label": "Netbox API (internal container)",
+      "onAutoForward": "notify"
+    }
+  },
+  
+  "containerEnv": {
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  
+  "capAdd": ["SYS_PTRACE"],
+  "securityOpt": ["seccomp=unconfined"]
+}
