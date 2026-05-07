@@ -1,0 +1,13 @@
+# NetBox Plugin Requirements
+# These are installed automatically when the netbox container starts.
+# Uncomment the plugins you want to activate.
+
+# ── Lifecycle (EoL / EoS tracking) ──────────────────────────────────────────
+# Adds End-of-Life / End-of-Sale date fields to devices.
+# Docs: https://github.com/ArnesSI/netbox-lifecycle
+netbox-lifecycle
+
+# ── Inventory (physical asset tracking) ─────────────────────────────────────
+# Adds asset tags, ownership and storage location tracking.
+# Docs: https://github.com/ArnesSI/netbox-inventory
+# netbox-inventory

@@ -113,6 +113,32 @@ services:
     command: python manage.py rqworker
     restart: unless-stopped
 
+  # Automation Node - Runs Ansible playbooks and Python scripts
+  automation:
+    image: python:3.11-slim
+    container_name: netbox-automation
+    env_file: .env
+    environment:
+      PYTHONUNBUFFERED: 1
+      NETBOX_URL: http://netbox:8080
+      NETBOX_API_TOKEN: ${NETBOX_API_TOKEN}
+      NETBOX_VERIFY_SSL: "false"
+    volumes:
+      - ./.env:/workspace/.env
+      - ../Code/ansible:/workspace/ansible
+      - ../Code/python/scripts:/workspace/python
+      - ./logs/ansible:/var/log/ansible
+    networks:
+      - netbox-network
+    working_dir: /workspace
+    # Keep container running for manual execution
+    command: sleep infinity
+    restart: unless-stopped
+    depends_on:
+      - netbox
+      - postgres
+      - redis
+
 networks:
   netbox-network:
     driver: bridge

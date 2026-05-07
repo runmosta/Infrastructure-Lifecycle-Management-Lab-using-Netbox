@@ -1,3 +1,4 @@
+---
 name: netbox-infrastructure-management
 description: Design and implement a network infrastructure lifecycle management system using Netbox for multi-vendor devices (Cisco, Arista, Fortinet) with dual-mode operation (offline simulated + online real devices) on Windows with Docker.
 ---
@@ -164,4 +165,3 @@ services:
    - Run same scripts against real lab devices
    - Validate production readiness
    - Monitor performance and scaling
-
