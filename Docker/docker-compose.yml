@@ -38,7 +38,10 @@ services:
 
   # Netbox - Network Source of Truth
   netbox:
-    image: netboxcommunity/netbox:v4.0
+    build:
+      context: ..           # project root so Dockerfile can COPY Code/...
+      dockerfile: Docker/Dockerfile.netbox
+    image: netbox-lab:latest  # tag the built image for re-use by netbox-worker
     container_name: netbox-app
     depends_on:
       postgres:
@@ -74,7 +77,8 @@ services:
       # Persist media and configs
       - ./Data/netbox:/opt/netbox/netbox/media
       - ./logs/netbox:/var/log/netbox
-      - ../Code/netbox/plugins:/opt/netbox/plugins
+      # Load plugins.py into Netbox config directory (scanned at startup)
+      - ../Code/netbox/plugins/plugins.py:/etc/netbox/config/plugins.py
     networks:
       - netbox-network
     ports:
@@ -88,7 +92,7 @@ services:
 
   # Netbox Worker - Background tasks
   netbox-worker:
-    image: netboxcommunity/netbox:v4.0
+    image: netbox-lab:latest  # reuses the image built by the netbox service above
     container_name: netbox-worker
     depends_on:
       - postgres
@@ -107,7 +111,7 @@ services:
       API_TOKEN_PEPPERS: ${API_TOKEN_PEPPERS}
     volumes:
       - ./logs/netbox:/var/log/netbox
-      - ../Code/netbox/plugins:/opt/netbox/plugins
+      - ../Code/netbox/plugins/plugins.py:/etc/netbox/config/plugins.py
     networks:
       - netbox-network
     command: python manage.py rqworker

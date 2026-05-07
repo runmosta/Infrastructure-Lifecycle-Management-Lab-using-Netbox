@@ -3,8 +3,10 @@
 # Uncomment the plugins you want to activate.
 
 # ── Lifecycle (EoL / EoS tracking) ──────────────────────────────────────────
-# Adds End-of-Life / End-of-Sale date fields to devices.
-# Docs: https://github.com/ArnesSI/netbox-lifecycle
+# Tracks EOL/EOS dates at DeviceType level (model-wide hardware lifecycle).
+# Also tracks Support Contracts (start/end, Active/Future/Expired) per device.
+# Replaces custom fields: service_start_date, service_end_date, service_tags, eos
+# Docs: https://github.com/DanSheps/netbox-lifecycle
 netbox-lifecycle
 
 # ── Inventory (physical asset tracking) ─────────────────────────────────────

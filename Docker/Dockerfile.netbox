@@ -1,0 +1,6 @@
+FROM netboxcommunity/netbox:v4.5
+
+# Install Netbox plugins into the existing venv
+# Build context must be the project root (see docker-compose.yml build section)
+COPY Code/netbox/plugins/local_requirements.txt /opt/netbox/local_requirements.txt
+RUN uv pip install --python /opt/netbox/venv/bin/python3 --no-cache -r /opt/netbox/local_requirements.txt

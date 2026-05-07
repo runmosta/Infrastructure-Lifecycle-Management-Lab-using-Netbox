@@ -14,10 +14,12 @@ PLUGINS = [
 
 PLUGINS_CONFIG = {
     # ── netbox_lifecycle ───────────────────────────────────────────────────
+    # EOL/EOS at DeviceType level (model-wide hardware lifecycle)
+    # Support Contracts (start/end date, Active/Future/Expired) assigned per device
+    # service_tags tracked via the plugin's contract metadata
     "netbox_lifecycle": {
-        # Default notice days before EoL/EoS to flag devices as "warning"
-        "hw_eol_notice_days": 365,
-        "sw_eol_notice_days": 180,
+        "lifecycle_card_position": "right_page",   # Options: left_page, right_page, full_width_page
+        "contract_card_position": "right_page",    # Options: left_page, right_page, full_width_page
     },
 
     # ── netbox_inventory ───────────────────────────────────────────────────

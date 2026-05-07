@@ -141,17 +141,17 @@ services:
 
 ## Lifecycle Management Fields
 
-### Custom Device Fields (in Netbox)
-- **EOS (End of Service)**: Boolean or date indicating service lifecycle stage
-- **Service End Date**: Date field for planned device retirement
-- **Service Start Date**: Date field for deployment tracking
-- **Service Tags**: Choice field mapping to cost centers / work orders
+### Lifecycle Tracking (netbox-lifecycle plugin)
+All lifecycle data is managed via the `netbox-lifecycle` plugin (DanSheps, Apache-2.0):
+- **Hardware EOL/EOS**: Tracked at DeviceType level — applies model-wide (e.g. "Cisco ASR 1001-X EOL: 2026-01-01")
+- **Support Contracts**: Start/end date per device, grouped as Active / Future / Expired
+- **Licenses**: Assigned to Devices and Virtual Machines
+- Custom fields (`eos`, `service_start_date`, `service_end_date`, `service_tags`) are replaced by the plugin
 
 ### Python Script Responsibilities
-- Populate Service Start Date on first device discovery
-- Monitor device health and update EOS status
-- Sync Service Tags from external systems (CMDB, cost system)
-- Flag devices approaching Service End Date
+- Query plugin contract/EOL data via Netbox API (`pynetbox`)
+- Monitor devices approaching contract expiry or EOL dates
+- Sync contract metadata from external systems (CMDB, cost system)
 
 ## Testing Strategy
 
