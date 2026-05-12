@@ -131,12 +131,15 @@ services:
       - ./.env:/workspace/.env
       - ../Code/ansible:/workspace/ansible
       - ../Code/python/scripts:/workspace/python
+      - ../Code/python/requirements.txt:/workspace/requirements.txt
+      - ../Data/inputs:/workspace/Data/inputs
+      - ../logs/python:/workspace/logs
       - ./logs/ansible:/var/log/ansible
     networks:
       - netbox-network
     working_dir: /workspace
-    # Keep container running for manual execution
-    command: sleep infinity
+    # Install dependencies then keep container running for manual execution
+    command: sh -c "pip install -q -r requirements.txt && sleep infinity"
     restart: unless-stopped
     depends_on:
       - netbox

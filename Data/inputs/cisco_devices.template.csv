@@ -1,0 +1,3 @@
+name,site,role,model,serial,ip,eol_date
+cisco-router-01,LAB-OSL,edge-router,ISR-4331,FTX1234A1BC,192.168.1.1/24,2028-01-15
+cisco-switch-01,LAB-OSL,access-switch,C9200L-24P-4G,FOC2345B2CD,,

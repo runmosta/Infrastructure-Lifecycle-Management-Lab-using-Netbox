@@ -20,6 +20,8 @@ logs/**/*.txt
 Data/postgres/*
 Data/netbox/media/*
 Data/volumes/*
+Data/inputs/*.csv
+!Data/inputs/*.template.csv
 !Data/**/.gitkeep
 
 # Environment variables
