@@ -85,21 +85,46 @@ git log --oneline -- Code/python/scripts/health_check.py
 
 #### Working with Branches
 
-For experimental features, create a branch:
-```bash
-# Create and switch to new branch
-git checkout -b feature/eve-ng-integration
+**Always branch before making changes.** This keeps `main` stable and lets you compare or discard work safely.
 
-# Make changes and commit
+**VS Code task (recommended):** Open the Command Palette (`Cmd+Shift+P`) → `Tasks: Run Task` → choose:
+- **Git: New Feature Branch** — pulls latest main and creates a named branch (prompts you for the name)
+- **Git: Commit and Push** — stages all changes, commits with a message, and pushes the branch
+- **Git: Merge Branch to Main** — merges the current branch into main, pushes, and deletes the branch
+
+**Manual steps:**
+```bash
+# 1. Start fresh from main
+git checkout main && git pull
+
+# 2. Create your branch (use a prefix that matches the change type)
+git checkout -b feature/eve-ng-integration   # new functionality
+git checkout -b fix/pynetbox-auth-error      # bug fix
+git checkout -b chore/update-docker-compose  # config/infra change
+git checkout -b experiment/snmp-polling      # exploratory work
+
+# 3. Make changes and commit regularly
 git add .
 git commit -m "Add EVE-NG device discovery"
 
-# Switch back to main
-git checkout main
+# 4. Push branch to GitHub for backup / review
+git push --set-upstream origin $(git branch --show-current)
 
-# Merge feature branch
+# 5. When done, merge back to main and clean up
+git checkout main
 git merge feature/eve-ng-integration
+git push
+git branch -d feature/eve-ng-integration
 ```
+
+**Branch naming conventions:**
+
+| Prefix | Example | Use case |
+|--------|---------|----------|
+| `feature/` | `feature/lifecycle-plugin-migration` | New functionality |
+| `fix/` | `fix/pynetbox-auth-error` | Bug fixes |
+| `chore/` | `chore/update-docker-compose` | Config/infra changes |
+| `experiment/` | `experiment/snmp-polling` | Exploratory/throwaway work |
 
 ## Backup Strategy
 

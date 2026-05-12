@@ -1,0 +1,25 @@
+FROM arista/ceos:latest
+
+# ---------------------------------------------------------------------------
+# modprobe wrapper for Docker Desktop on macOS (Apple Silicon / linuxkit)
+#
+# cEOS's EosStage2 calls `modprobe tun` and `modprobe rbfd` (and others) to
+# load kernel modules. On Docker Desktop the linuxkit kernel compiles `tun`
+# as a built-in and ships no loadable .ko files, so stock modprobe always
+# fails with "Module X not found". This causes EosStage2 to abort, which
+# prevents Sysdb and all EOS agents from starting.
+#
+# The wrapper below returns 0 (success) for any module that:
+#   a) is listed in modules.builtin (already compiled into the kernel), or
+#   b) has no matching .ko file anywhere under /lib/modules/<kver>/
+#      (hardware-specific EOS modules like rbfd that are no-ops in a VM)
+#
+# For any module that does exist as a loadable .ko the real kmod binary
+# is called, so normal module loading still works.
+# ---------------------------------------------------------------------------
+
+# Back up the real kmod binary (modprobe is a symlink -> /bin/kmod)
+RUN cp /bin/kmod /bin/kmod.real
+
+COPY scripts/modprobe_wrapper.sh /bin/kmod
+RUN chmod +x /bin/kmod

@@ -47,6 +47,7 @@ Use Netbox as a **centralized lifecycle management system** for multi-vendor net
 - **Python** (3.11) — Automation scripts (Container: `netbox-automation`)
 - **Ansible** (2.19.9) — Configuration management (Container: `netbox-automation`)
 - **RQ Worker** — Background job processor (Container: `netbox-worker`)
+- **Arista cEOS** (4.36.0F) — Containerized EOS virtual switch (Container: `arista-ceos-01`)
 
 ### ✅ Installed on Host
 - **Visual Studio Code** — Development IDE with Dev Containers support
@@ -147,6 +148,7 @@ This starts:
 - **netbox** — Netbox web UI & API (port 8000)
 - **netbox-worker** — Background job processor
 - **netbox-automation** — Python/Ansible automation node
+- **arista-ceos-01** — Arista cEOS 4.36.0F virtual switch (~2 min to boot)
 
 ### 2. Access Netbox Web UI
 Open browser: **http://localhost:8000**
@@ -209,6 +211,13 @@ All containers run on an isolated `netbox-network` bridge:
 │  │  - Access .env credentials                      │ │
 │  │  - Run scripts & playbooks                      │ │
 │  └──────────────────────────────────────────────────┘ │
+│                                                         │
+│  ┌──────────────────────────────────────────────────┐ │
+│  │     arista-ceos-01 (Arista cEOS 4.36.0F)        │ │
+│  │  - Virtual Arista EOS switch                    │ │
+│  │  - eAPI on port 443, SSH on port 22             │ │
+│  │  - Reachable by hostname from other containers  │ │
+│  └──────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
         ↓
    Port Forwarding
@@ -225,6 +234,8 @@ All containers run on an isolated `netbox-network` bridge:
 | Netbox API | `http://netbox:8080/api/` | `http://localhost:8000/api/` |
 | PostgreSQL | `postgres:5432` | `localhost:5432` |
 | Redis | `redis:6379` | Not exposed |
+| Arista cEOS SSH | `arista-ceos-01:22` | Not exposed |
+| Arista cEOS eAPI | `arista-ceos-01:443` | Not exposed |
 
 ## How to Use Each Component
 
@@ -276,6 +287,62 @@ docker exec netbox-automation python python/scripts/query_devices.py
 # In VS Code terminal (inside container)
 python python/scripts/query_devices.py
 ```
+
+### 🌿 Arista cEOS Virtual Switch
+
+**Container:** `arista-ceos-01` (Arista EOS 4.36.0F)
+
+cEOS is a fully containerized Arista EOS switch. It runs the same software as physical Arista hardware, making it ideal for testing Ansible playbooks and Python automation before applying them to real devices.
+
+**cEOS boots in ~2 minutes.** Wait for it before running CLI commands.
+
+**Access the EOS CLI:**
+```bash
+# Interactive CLI session
+docker exec -it arista-ceos-01 /usr/bin/CliShell
+
+# Single command
+docker exec arista-ceos-01 /usr/bin/CliShell -c "show version"
+docker exec arista-ceos-01 /usr/bin/CliShell -c "show interfaces"
+docker exec arista-ceos-01 /usr/bin/CliShell -c "show ip interface brief"
+```
+
+**SSH to cEOS (from automation container or host):**
+```bash
+# Get the cEOS IP on the Docker network
+docker inspect arista-ceos-01 --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+
+# SSH in (credentials from startup-config)
+ssh admin@<ip>   # password: admin
+```
+
+**Register cEOS in Netbox as a Virtual Machine:**
+```bash
+docker exec netbox-automation python /workspace/python/Add_Virtual_Device.py \
+  --name arista-ceos-01 \
+  --site LAB-OSL \
+  --cluster "Lab Docker" \
+  --platform EOS \
+  --role leaf-switch \
+  --ip 192.168.100.10/24
+```
+
+**How the image is built:**
+
+The `arista/ceos:latest` image (imported from the Arista `.tar.xz` download) requires the `tun` kernel module and several EOS-specific modules (`rbfd`, etc.). On Docker Desktop for macOS these modules are either built into the linuxkit kernel (no `.ko` file) or simply not present, causing `EosStage2` to abort before any EOS agents start.
+
+A custom `Dockerfile.ceos` bakes in a `modprobe` wrapper that returns success for missing/built-in modules, allowing EOS to boot fully. This fix is automatic — you never need to apply it manually.
+
+```
+Docker/
+├── Dockerfile.ceos              # Builds arista/ceos-lab:latest
+└── scripts/
+    └── modprobe_wrapper.sh      # modprobe shim for Docker Desktop / macOS
+```
+
+**To add a second cEOS switch**, duplicate the `arista-ceos-01` service block in `docker-compose.yml`, change the container name, hostname, and `CEOS_SYSTEM_MAC`.
+
+---
 
 ### 📋 Ansible Playbooks
 
@@ -412,8 +479,9 @@ See **[DOCKER_TROUBLESHOOT.md](DOCKER_TROUBLESHOOT.md)** for detailed troublesho
 
 1. ✅ **Docker setup complete** — Netbox is running
 2. ✅ **Dev container configured** — Full IDE ready
-3. 📝 **Create automation scripts** — Query Netbox API
-4. 📋 **Write Ansible playbooks** — Automate device management
-5. 🔧 **Add custom fields** — Lifecycle tracking in Netbox
-6. 🧪 **Test with real devices** — Move to online mode
-7. 📊 **Monitor & scale** — Production deployment
+3. ✅ **Arista cEOS running** — Virtual switch on Docker network
+4. 📝 **Create automation scripts** — Query Netbox API
+5. 📋 **Write Ansible playbooks** — Automate device management
+6. 🔧 **Add custom fields** — Lifecycle tracking in Netbox
+7. 🧪 **Test with real devices** — Move to online mode
+8. 📊 **Monitor & scale** — Production deployment

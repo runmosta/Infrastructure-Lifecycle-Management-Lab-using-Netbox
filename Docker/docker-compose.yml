@@ -146,6 +146,38 @@ services:
       - postgres
       - redis
 
+  # Arista cEOS-lab virtual switch (cEOS64-lab-4.36.0F)
+  arista-ceos-01:
+    build:
+      context: .
+      dockerfile: Dockerfile.ceos
+    image: arista/ceos-lab:latest
+    container_name: arista-ceos-01
+    privileged: true
+    # cEOS needs a unique system MAC per instance; adjust if running multiple
+    environment:
+      CEOS: 1
+      EOS_PLATFORM: ceoslab
+      CEOS_SYSTEM_MAC: "00:1c:73:ab:cd:01"
+      container: docker
+      INTFTYPE: eth
+      ETBA: 1
+      SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
+      MGMT_INTF: eth0
+    networks:
+      - netbox-network
+    volumes:
+      - ceos01-flash:/mnt/flash
+      - /lib/modules:/lib/modules:ro
+    command: /sbin/init
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "Cli", "-c", "show version"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
 networks:
   netbox-network:
     driver: bridge
@@ -154,3 +186,4 @@ volumes:
   postgres_data:
   redis_data:
   netbox_data:
+  ceos01-flash:
