@@ -1,0 +1,228 @@
+---
+# =============================================================================
+# Playbook: sync_ceos_to_netbox.yml
+#
+# Purpose:
+#   1. Try to connect to each cEOS switch and collect: serial number, EOS version
+#   2. Look up the matching Virtual Machine in Netbox
+#   3. Update the VM's comments field with the EOS software version
+#   4. If serial number is blank in Netbox → write it
+#   5. If serial number in Netbox doesn't match device → log mismatch, keep existing
+#   6. If device is unreachable → set VM status to "offline" in Netbox
+#   7. Write a timestamped log entry for every run
+#
+# Run:
+#   docker exec netbox-automation \
+#     ansible-playbook /workspace/ansible/playbooks/sync_ceos_to_netbox.yml
+# =============================================================================
+
+- name: Sync cEOS device facts to Netbox
+  hosts: ceos_switches
+  gather_facts: false
+  ignore_unreachable: true
+
+  vars:
+    netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('http://netbox:8080') }}"
+    netbox_token: "{{ lookup('env', 'NETBOX_API_TOKEN') }}"
+    netbox_headers:
+      Authorization: "Token {{ lookup('env', 'NETBOX_API_TOKEN') }}"
+      Accept: application/json
+      Host: "localhost:8000"
+    netbox_headers_json:
+      Authorization: "Token {{ lookup('env', 'NETBOX_API_TOKEN') }}"
+      Content-Type: application/json
+      Host: "localhost:8000"
+    log_file: "/var/log/ansible/ceos_sync.log"
+    timestamp: "{{ ansible_date_time.iso8601 }}"
+
+  pre_tasks:
+    - name: Record run start time
+      set_fact:
+        run_ts: "{{ lookup('pipe', 'date +\"%Y-%m-%dT%H:%M:%S\"') }}"
+
+  tasks:
+    # ------------------------------------------------------------------
+    # 1. Collect facts from the device
+    # ------------------------------------------------------------------
+    - name: Collect EOS facts
+      eos_facts:
+        gather_subset:
+          - hardware
+          - default
+      register: eos_fact_result
+      ignore_errors: true
+
+    - name: Mark device as unreachable when connection failed
+      set_fact:
+        device_reachable: false
+      when: ansible_unreachable is defined and ansible_unreachable
+
+    - name: Mark device as reachable
+      set_fact:
+        device_reachable: true
+      when: ansible_unreachable is not defined or not ansible_unreachable
+
+    # ------------------------------------------------------------------
+    # 2. Look up the VM in Netbox
+    # ------------------------------------------------------------------
+    - name: Query Netbox for VM record
+      uri:
+        url: "{{ netbox_url }}/api/virtualization/virtual-machines/?name={{ inventory_hostname }}"
+        headers: "{{ netbox_headers }}"
+        validate_certs: false
+        status_code: 200
+      register: nb_vm_query
+      delegate_to: localhost
+
+    - name: Extract Netbox VM object
+      set_fact:
+        nb_vm: "{{ nb_vm_query.json.results[0] | default(none) }}"
+
+    - name: Fail with clear message when VM not in Netbox
+      fail:
+        msg: >
+          No Virtual Machine named '{{ inventory_hostname }}' found in Netbox.
+          Run Add_Virtual_Device.py first.
+      when: nb_vm is none
+
+    # ------------------------------------------------------------------
+    # 3. Handle unreachable device → set Netbox status offline
+    # ------------------------------------------------------------------
+    - name: Set VM status to offline in Netbox (device unreachable)
+      uri:
+        url: "{{ netbox_url }}/api/virtualization/virtual-machines/{{ nb_vm.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          status: "offline"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+      when: not device_reachable
+
+    - name: Log unreachable device
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ inventory_hostname }} | UNREACHABLE | Status set to offline in Netbox"
+        create: true
+      delegate_to: localhost
+      when: not device_reachable
+
+    - name: Stop processing unreachable device
+      meta: end_host
+      when: not device_reachable
+
+    # ------------------------------------------------------------------
+    # 4. Extract facts from live device
+    # ------------------------------------------------------------------
+    - name: Set device facts
+      set_fact:
+        device_serial: "{{ ansible_net_serialnum | default('') | trim }}"
+        device_eos_version: "{{ ansible_net_version | default('') | trim }}"
+        device_model: "{{ ansible_net_model | default('') | trim }}"
+
+    # ------------------------------------------------------------------
+    # 5. Update EOS software version in Netbox VM comments field
+    # ------------------------------------------------------------------
+    - name: Update EOS software version in Netbox (comments field)
+      uri:
+        url: "{{ netbox_url }}/api/virtualization/virtual-machines/{{ nb_vm.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          status: "active"
+          comments: "EOS version: {{ device_eos_version }} | Model: {{ device_model }} | Last synced: {{ run_ts }}"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+
+    - name: Log software version update
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ inventory_hostname }} | VERSION_UPDATED | EOS={{ device_eos_version }} Model={{ device_model }}"
+        create: true
+      delegate_to: localhost
+
+    # ------------------------------------------------------------------
+    # 6. Serial number handling
+    # ------------------------------------------------------------------
+    - name: Determine Netbox serial number
+      set_fact:
+        nb_serial: "{{ nb_vm.get('serial', '') | default('') | trim }}"
+
+    # Case A: serial missing in Netbox → write it
+    - name: Write serial number to Netbox (was empty)
+      uri:
+        url: "{{ netbox_url }}/api/virtualization/virtual-machines/{{ nb_vm.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          serial: "{{ device_serial }}"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+      when:
+        - nb_serial == ""
+        - device_serial != ""
+
+    - name: Log serial number written
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ inventory_hostname }} | SERIAL_WRITTEN | serial={{ device_serial }}"
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial == ""
+        - device_serial != ""
+
+    # Case B: serial present in Netbox and matches device → all good
+    - name: Log serial number match
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ inventory_hostname }} | SERIAL_OK | serial={{ device_serial }}"
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial != ""
+        - nb_serial == device_serial
+
+    # Case C: serial present in Netbox but does NOT match device → log mismatch, do not overwrite
+    - name: Log serial number mismatch (no automatic overwrite)
+      lineinfile:
+        path: "{{ log_file }}"
+        line: >-
+          {{ run_ts }} | {{ inventory_hostname }} | SERIAL_MISMATCH |
+          netbox={{ nb_serial }} device={{ device_serial }} |
+          ACTION REQUIRED: verify and update manually
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial != ""
+        - nb_serial != device_serial
+
+    - name: Print serial mismatch warning to console
+      debug:
+        msg: >
+          WARNING: Serial mismatch on {{ inventory_hostname }}.
+          Netbox has '{{ nb_serial }}', device reports '{{ device_serial }}'.
+          Netbox record NOT updated automatically — verify manually.
+      when:
+        - nb_serial != ""
+        - nb_serial != device_serial
+
+    # ------------------------------------------------------------------
+    # 7. Summary to console
+    # ------------------------------------------------------------------
+    - name: Print sync summary
+      debug:
+        msg:
+          - "Host         : {{ inventory_hostname }}"
+          - "Reachable    : {{ device_reachable }}"
+          - "EOS version  : {{ device_eos_version }}"
+          - "Model        : {{ device_model }}"
+          - "Serial       : {{ device_serial }}"
+          - "Netbox VM ID : {{ nb_vm.id }}"
+          - "Log          : {{ log_file }}"

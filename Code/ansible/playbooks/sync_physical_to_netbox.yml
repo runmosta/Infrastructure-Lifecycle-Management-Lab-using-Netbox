@@ -1,0 +1,430 @@
+---
+# =============================================================================
+# Playbook: sync_physical_to_netbox.yml
+#
+# Purpose:
+#   Connects to physical network devices (Arista EOS, Cisco IOS) via SSH using
+#   credentials from Docker/.env, collects device facts, then syncs them to the
+#   matching DCIM device record in Netbox.
+#
+#   Per device:
+#   - Reachable     → collect serial + software version, update Netbox, status=active
+#   - Unreachable   → set Netbox device status to "offline", log it
+#   - Serial blank  → write serial number to Netbox
+#   - Serial match  → log OK
+#   - Serial mismatch → log warning, do NOT overwrite (manual review required)
+#
+# Credentials (set in Docker/.env, injected into container automatically):
+#   DEVICE_SSH_USER      SSH username
+#   DEVICE_SSH_PASSWORD  SSH password
+#   DEVICE_SSH_ENABLE    Enable/privilege password (Cisco) or leave blank for Arista
+#
+# Inventory: Code/ansible/inventory/physical_devices.ini
+#   Add real devices under [arista_physical] or [cisco_physical] sections.
+#
+# Run:
+#   docker exec netbox-automation \
+#     ansible-playbook /workspace/ansible/playbooks/sync_physical_to_netbox.yml
+#
+#   Or target a specific group:
+#   docker exec netbox-automation \
+#     ansible-playbook /workspace/ansible/playbooks/sync_physical_to_netbox.yml \
+#     --limit arista_physical
+# =============================================================================
+
+# =============================================================================
+# PLAY 1: Arista physical devices (EOS)
+# =============================================================================
+- name: Sync Arista physical devices to Netbox
+  hosts: arista_physical
+  gather_facts: false
+  ignore_unreachable: true
+
+  vars:
+    netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('http://netbox:8080') }}"
+    netbox_headers:
+      Authorization: "Token {{ lookup('env', 'NETBOX_API_TOKEN') }}"
+      Accept: application/json
+      Host: "localhost:8000"
+    netbox_headers_json:
+      Authorization: "Token {{ lookup('env', 'NETBOX_API_TOKEN') }}"
+      Content-Type: application/json
+      Host: "localhost:8000"
+    log_file: "/var/log/ansible/physical_sync.log"
+    vendor: "Arista"
+
+  pre_tasks:
+    - name: Record run timestamp
+      set_fact:
+        run_ts: "{{ lookup('pipe', 'date +\"%Y-%m-%dT%H:%M:%S\"') }}"
+
+    - name: Log SSH user being used (no password)
+      debug:
+        msg: "Connecting to {{ inventory_hostname }} ({{ ansible_host }}) as {{ ansible_user }}"
+
+  tasks:
+    # ------------------------------------------------------------------
+    # 1. Collect EOS facts via SSH
+    # ------------------------------------------------------------------
+    - name: Collect EOS facts
+      eos_facts:
+        gather_subset:
+          - hardware
+          - default
+      register: eos_fact_result
+      ignore_errors: true
+
+    - name: Mark device reachable
+      set_fact:
+        device_reachable: "{{ ansible_unreachable is not defined or not ansible_unreachable }}"
+
+    # ------------------------------------------------------------------
+    # 2. Look up device in Netbox DCIM (physical devices use dcim/devices/)
+    # ------------------------------------------------------------------
+    - name: Query Netbox DCIM for device record
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/?name={{ inventory_hostname }}"
+        headers: "{{ netbox_headers }}"
+        validate_certs: false
+        status_code: 200
+      register: nb_device_query
+      delegate_to: localhost
+
+    - name: Extract Netbox device object
+      set_fact:
+        nb_device: "{{ nb_device_query.json.results[0] | default(none) }}"
+
+    - name: Fail with clear message when device not in Netbox
+      fail:
+        msg: >
+          No DCIM device named '{{ inventory_hostname }}' found in Netbox.
+          Run Add_Device.py first:
+            docker exec netbox-automation python /workspace/python/Add_Device.py
+              --name {{ inventory_hostname }} --site LAB-OSL
+              --manufacturer Arista --model <model>
+      when: nb_device is none
+
+    # ------------------------------------------------------------------
+    # 3. Handle unreachable device
+    # ------------------------------------------------------------------
+    - name: Set device status to offline in Netbox
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/{{ nb_device.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          status: "offline"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+      when: not device_reachable
+
+    - name: Log unreachable device
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | UNREACHABLE | Status set to offline"
+        create: true
+      delegate_to: localhost
+      when: not device_reachable
+
+    - name: Stop processing unreachable device
+      meta: end_host
+      when: not device_reachable
+
+    # ------------------------------------------------------------------
+    # 4. Extract facts
+    # ------------------------------------------------------------------
+    - name: Set device facts from EOS
+      set_fact:
+        device_serial: "{{ ansible_net_serialnum | default('') | trim }}"
+        device_version: "{{ ansible_net_version | default('') | trim }}"
+        device_model: "{{ ansible_net_model | default('') | trim }}"
+
+    # ------------------------------------------------------------------
+    # 5. Update software version + mark active
+    # ------------------------------------------------------------------
+    - name: Update software version and status in Netbox
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/{{ nb_device.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          status: "active"
+          comments: "EOS version: {{ device_version }} | Model: {{ device_model }} | Last synced: {{ run_ts }}"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+
+    - name: Log version update
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | VERSION_UPDATED | EOS={{ device_version }} Model={{ device_model }}"
+        create: true
+      delegate_to: localhost
+
+    # ------------------------------------------------------------------
+    # 6. Serial number handling
+    # ------------------------------------------------------------------
+    - name: Determine Netbox serial
+      set_fact:
+        nb_serial: "{{ nb_device.get('serial', '') | default('') | trim }}"
+
+    - name: Write serial to Netbox (was blank)
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/{{ nb_device.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          serial: "{{ device_serial }}"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+      when:
+        - nb_serial == ""
+        - device_serial != ""
+
+    - name: Log serial written
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | SERIAL_WRITTEN | serial={{ device_serial }}"
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial == ""
+        - device_serial != ""
+
+    - name: Log serial match
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | SERIAL_OK | serial={{ device_serial }}"
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial != ""
+        - nb_serial == device_serial
+
+    - name: Log serial mismatch (no automatic overwrite)
+      lineinfile:
+        path: "{{ log_file }}"
+        line: >-
+          {{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | SERIAL_MISMATCH |
+          netbox={{ nb_serial }} device={{ device_serial }} | ACTION REQUIRED
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial != ""
+        - nb_serial != device_serial
+
+    - name: Print serial mismatch warning
+      debug:
+        msg: >
+          WARNING: Serial mismatch on {{ inventory_hostname }}.
+          Netbox='{{ nb_serial }}' Device='{{ device_serial }}'.
+          Record NOT updated — verify manually.
+      when:
+        - nb_serial != ""
+        - nb_serial != device_serial
+
+    # ------------------------------------------------------------------
+    # 7. Summary
+    # ------------------------------------------------------------------
+    - name: Print sync summary
+      debug:
+        msg:
+          - "Host         : {{ inventory_hostname }} ({{ ansible_host }})"
+          - "Vendor       : {{ vendor }}"
+          - "Reachable    : {{ device_reachable }}"
+          - "EOS version  : {{ device_version }}"
+          - "Model        : {{ device_model }}"
+          - "Serial       : {{ device_serial }}"
+          - "Netbox ID    : {{ nb_device.id }}"
+          - "Log          : {{ log_file }}"
+
+
+# =============================================================================
+# PLAY 2: Cisco physical devices (IOS / IOS-XE)
+# =============================================================================
+- name: Sync Cisco physical devices to Netbox
+  hosts: cisco_physical
+  gather_facts: false
+  ignore_unreachable: true
+
+  vars:
+    netbox_url: "{{ lookup('env', 'NETBOX_URL') | default('http://netbox:8080') }}"
+    netbox_headers:
+      Authorization: "Token {{ lookup('env', 'NETBOX_API_TOKEN') }}"
+      Accept: application/json
+      Host: "localhost:8000"
+    netbox_headers_json:
+      Authorization: "Token {{ lookup('env', 'NETBOX_API_TOKEN') }}"
+      Content-Type: application/json
+      Host: "localhost:8000"
+    log_file: "/var/log/ansible/physical_sync.log"
+    vendor: "Cisco"
+
+  pre_tasks:
+    - name: Record run timestamp
+      set_fact:
+        run_ts: "{{ lookup('pipe', 'date +\"%Y-%m-%dT%H:%M:%S\"') }}"
+
+    - name: Log SSH user being used
+      debug:
+        msg: "Connecting to {{ inventory_hostname }} ({{ ansible_host }}) as {{ ansible_user }}"
+
+  tasks:
+    - name: Collect IOS facts
+      ios_facts:
+        gather_subset:
+          - hardware
+          - default
+      register: ios_fact_result
+      ignore_errors: true
+
+    - name: Mark device reachable
+      set_fact:
+        device_reachable: "{{ ansible_unreachable is not defined or not ansible_unreachable }}"
+
+    - name: Query Netbox DCIM for device record
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/?name={{ inventory_hostname }}"
+        headers: "{{ netbox_headers }}"
+        validate_certs: false
+        status_code: 200
+      register: nb_device_query
+      delegate_to: localhost
+
+    - name: Extract Netbox device object
+      set_fact:
+        nb_device: "{{ nb_device_query.json.results[0] | default(none) }}"
+
+    - name: Fail when device not in Netbox
+      fail:
+        msg: "No DCIM device '{{ inventory_hostname }}' in Netbox. Run Add_Device.py first."
+      when: nb_device is none
+
+    - name: Set device status to offline
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/{{ nb_device.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          status: "offline"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+      when: not device_reachable
+
+    - name: Log unreachable
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | UNREACHABLE | Status set to offline"
+        create: true
+      delegate_to: localhost
+      when: not device_reachable
+
+    - name: Stop processing unreachable device
+      meta: end_host
+      when: not device_reachable
+
+    - name: Set device facts from IOS
+      set_fact:
+        device_serial: "{{ ansible_net_serialnum | default('') | trim }}"
+        device_version: "{{ ansible_net_version | default('') | trim }}"
+        device_model: "{{ ansible_net_model | default('') | trim }}"
+
+    - name: Update software version and status in Netbox
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/{{ nb_device.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          status: "active"
+          comments: "IOS version: {{ device_version }} | Model: {{ device_model }} | Last synced: {{ run_ts }}"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+
+    - name: Log version update
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | VERSION_UPDATED | IOS={{ device_version }} Model={{ device_model }}"
+        create: true
+      delegate_to: localhost
+
+    - name: Determine Netbox serial
+      set_fact:
+        nb_serial: "{{ nb_device.get('serial', '') | default('') | trim }}"
+
+    - name: Write serial to Netbox (was blank)
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/{{ nb_device.id }}/"
+        method: PATCH
+        headers: "{{ netbox_headers_json }}"
+        body_format: json
+        body:
+          serial: "{{ device_serial }}"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+      when:
+        - nb_serial == ""
+        - device_serial != ""
+
+    - name: Log serial written
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | SERIAL_WRITTEN | serial={{ device_serial }}"
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial == ""
+        - device_serial != ""
+
+    - name: Log serial match
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | SERIAL_OK | serial={{ device_serial }}"
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial != ""
+        - nb_serial == device_serial
+
+    - name: Log serial mismatch
+      lineinfile:
+        path: "{{ log_file }}"
+        line: >-
+          {{ run_ts }} | {{ vendor }} | {{ inventory_hostname }} | SERIAL_MISMATCH |
+          netbox={{ nb_serial }} device={{ device_serial }} | ACTION REQUIRED
+        create: true
+      delegate_to: localhost
+      when:
+        - nb_serial != ""
+        - nb_serial != device_serial
+
+    - name: Print serial mismatch warning
+      debug:
+        msg: >
+          WARNING: Serial mismatch on {{ inventory_hostname }}.
+          Netbox='{{ nb_serial }}' Device='{{ device_serial }}'.
+          Record NOT updated — verify manually.
+      when:
+        - nb_serial != ""
+        - nb_serial != device_serial
+
+    - name: Print sync summary
+      debug:
+        msg:
+          - "Host         : {{ inventory_hostname }} ({{ ansible_host }})"
+          - "Vendor       : {{ vendor }}"
+          - "Reachable    : {{ device_reachable }}"
+          - "IOS version  : {{ device_version }}"
+          - "Model        : {{ device_model }}"
+          - "Serial       : {{ device_serial }}"
+          - "Netbox ID    : {{ nb_device.id }}"
+          - "Log          : {{ log_file }}"

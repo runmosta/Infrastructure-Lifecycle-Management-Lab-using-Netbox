@@ -1,1 +1,5 @@
 requests>=2.31.0
+pynetbox>=7.3.0
+ansible>=9.0.0
+ansible-pylibssh>=1.1.0
+paramiko>=3.4.0

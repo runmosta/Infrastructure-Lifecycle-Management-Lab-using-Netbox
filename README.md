@@ -348,7 +348,82 @@ Docker/
 
 **Location:** `Code/ansible/playbooks/`
 
-**Example: Query Netbox Inventory**
+#### Sync Virtual Device (cEOS) to Netbox
+
+`sync_ceos_to_netbox.yml` — Connects to the `arista-ceos-01` container, collects EOS facts, and updates the matching Netbox VM record (Virtualization → Virtual Machines).
+
+```bash
+docker exec -e ANSIBLE_CONFIG=/workspace/ansible/ansible.cfg netbox-automation \
+  ansible-playbook /workspace/ansible/playbooks/sync_ceos_to_netbox.yml
+```
+
+Per run, for each cEOS device:
+- **Reachable** → collect EOS version + serial, update Netbox, mark active
+- **Unreachable** → set Netbox status to `offline`, log it
+- **Serial blank** → write serial to Netbox
+- **Serial match** → log OK, no change
+- **Serial mismatch** → log warning, **do not overwrite** (manual review required)
+
+Log: `Docker/logs/ansible/ceos_sync.log`
+
+---
+
+#### Sync Physical Devices to Netbox
+
+`sync_physical_to_netbox.yml` — Connects to real Arista/Cisco devices via SSH, collects facts, and updates the matching **DCIM device** record in Netbox.
+
+**Prerequisites:**
+
+1. Add device IPs to `Code/ansible/inventory/physical_devices.ini`:
+   ```ini
+   [arista_physical]
+   your-arista-device ansible_host=<management-ip>
+
+   [cisco_physical]
+   your-cisco-device ansible_host=<management-ip>
+   ```
+
+2. Set SSH credentials in `Docker/.env`:
+   ```
+   DEVICE_SSH_USER=admin
+   DEVICE_SSH_PASSWORD=<password>
+   DEVICE_SSH_ENABLE=<enable-password>   # Cisco only; leave blank for Arista
+   ```
+
+3. Ensure the device is registered in Netbox first:
+   ```bash
+   docker exec netbox-automation python /workspace/python/Add_Device.py \
+     --name <device-name> \
+     --site <site-name> \
+     --role <role> \
+     --manufacturer <Arista|Cisco|Fortinet> \
+     --model <model>
+   ```
+
+**Run:**
+```bash
+# All physical devices
+docker exec -e ANSIBLE_CONFIG=/workspace/ansible/ansible.cfg netbox-automation \
+  ansible-playbook /workspace/ansible/playbooks/sync_physical_to_netbox.yml
+
+# Arista only
+docker exec -e ANSIBLE_CONFIG=/workspace/ansible/ansible.cfg netbox-automation \
+  ansible-playbook /workspace/ansible/playbooks/sync_physical_to_netbox.yml \
+  --limit arista_physical
+
+# Cisco only
+docker exec -e ANSIBLE_CONFIG=/workspace/ansible/ansible.cfg netbox-automation \
+  ansible-playbook /workspace/ansible/playbooks/sync_physical_to_netbox.yml \
+  --limit cisco_physical
+```
+
+Same reachability / serial / version logic as the cEOS playbook. Log: `Docker/logs/ansible/physical_sync.log`
+
+**Run both sync playbooks from VS Code:** Terminal → Run Task → `Ansible: Sync cEOS to Netbox` or `Ansible: Sync Physical Devices to Netbox`
+
+---
+
+#### Example: Query Netbox Inventory
 ```yaml
 ---
 - name: Get Devices from Netbox
@@ -420,6 +495,11 @@ API_TOKEN_PEPPERS=<peppers>             # Token encryption
 DB_HOST=postgres                        # Database host
 DB_NAME=netbox                          # Database name
 REDIS_HOST=redis                        # Redis host
+CEOS_SSH_USER=admin                     # cEOS SSH username
+CEOS_SSH_PASSWORD=admin                 # cEOS SSH password
+DEVICE_SSH_USER=admin                   # Physical device SSH username
+DEVICE_SSH_PASSWORD=                    # Physical device SSH password (fill in)
+DEVICE_SSH_ENABLE=                      # Cisco enable password (fill in; blank for Arista)
 ```
 
 These are **automatically available** as environment variables in:
@@ -480,8 +560,8 @@ See **[DOCKER_TROUBLESHOOT.md](DOCKER_TROUBLESHOOT.md)** for detailed troublesho
 1. ✅ **Docker setup complete** — Netbox is running
 2. ✅ **Dev container configured** — Full IDE ready
 3. ✅ **Arista cEOS running** — Virtual switch on Docker network
-4. 📝 **Create automation scripts** — Query Netbox API
-5. 📋 **Write Ansible playbooks** — Automate device management
+4. ✅ **Automation scripts ready** — Add devices, sync facts to Netbox
+5. ✅ **Ansible playbooks ready** — cEOS + physical device sync with Netbox
 6. 🔧 **Add custom fields** — Lifecycle tracking in Netbox
-7. 🧪 **Test with real devices** — Move to online mode
+7. 🧪 **Test with real devices** — Fill in `DEVICE_SSH_PASSWORD` in `Docker/.env` and run physical sync
 8. 📊 **Monitor & scale** — Production deployment
